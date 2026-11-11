@@ -1,13 +1,31 @@
+// --- 0. CONFIGURACIÓN DEL TEMPORIZADOR---
+
+const IS_LOCAL = ["localhost", "127.0.0.1"].includes(window.location.hostname);
+
+const TIMER_CONFIG = IS_LOCAL
+  ? {
+      workTime: 5,
+      breakTime: 5,
+      longBreakTime: 5,
+    }
+  : {
+      workTime: 25 * 60,
+      breakTime: 5 * 60,
+      longBreakTime: 15 * 60,
+    };
+
 // --- 1. ESTADO DE LA APLICACIÓN ---
 let state = {
-  workTime: 5, // 5 segundos para pruebas
-  breakTime: 5, // 5 segundos para pruebas
-  longBreakTime: 5, // 5 segundos para pruebas
-  currentTime: 5,
+  workTime: TIMER_CONFIG.workTime,
+  breakTime: TIMER_CONFIG.breakTime,
+  longBreakTime: TIMER_CONFIG.longBreakTime,
+  currentTime: TIMER_CONFIG.workTime,
+
   timerId: null,
   isRunning: false,
-  mode: "work", // 'work', 'shortBreak', 'longBreak'
-  isTransitioning: false, // Bandera para la cuenta regresiva de transición
+  mode: "work",
+  isTransitioning: false,
+  endTime: null,
 
   completedToday: 0,
   pomodoroCycleCount: 0,
@@ -66,6 +84,27 @@ function updateDisplay() {
     timerDisplay.textContent = formatTime(state.currentTime);
   }
   updateCircleProgress();
+}
+
+function tick() {
+  const remainingMilliseconds = state.endTime - Date.now();
+
+  state.currentTime = Math.max(0, Math.ceil(remainingMilliseconds / 1000));
+
+  updateDisplay();
+
+  if (remainingMilliseconds <= 0) {
+    clearInterval(state.timerId);
+
+    state.timerId = null;
+    state.endTime = null;
+    state.isRunning = false;
+    state.currentTime = 0;
+
+    updateDisplay();
+
+    completeTimer();
+  }
 }
 
 function updateCircleProgress() {
@@ -358,7 +397,7 @@ function setTheme(themeName) {
     // Si es un tema con imagen, actualizamos el src y mostramos la imagen
     if (bgImage) {
       bgImage.src = themesConfig[themeName];
-      bgImage.style.opacity = "2";
+      bgImage.style.opacity = "1";
     }
   }
 }
