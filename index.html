@@ -1,0 +1,556 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>StudyFocus | Pomodoro Timer</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn-uicons.flaticon.com/uicons-regular-straight/css/uicons-regular-straight.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn-uicons.flaticon.com/4.0.0/uicons-bold-rounded/css/uicons-bold-rounded.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn-uicons.flaticon.com/4.0.0/uicons-regular-straight/css/uicons-regular-straight.css"
+    />
+    <style>
+      body {
+        font-family: "Plus Jakarta Sans", sans-serif;
+      }
+      /* Efecto de brillo de neón personalizado para el SVG */
+      .neon-glow {
+        filter: drop-shadow(0 0 12px rgba(168, 85, 247, 0.7))
+          drop-shadow(0 0 25px rgba(168, 85, 247, 0.4));
+      }
+    </style>
+    <style>
+      .bubbles {
+        --c1: #0f172a; /* Color del texto al hacer hover (ajústalo a tu fondo) */
+        --c2: #f2f2f5; /* Color principal del botón */
+        --size-letter: 20px; /* Tamaño de fuente */
+        padding: 0.5em 1.2em;
+        font-size: var(--size-letter);
+        background-color: transparent;
+        border: calc(var(--size-letter) / 6) solid var(--c2);
+        border: none;
+        border-radius: 0.5em;
+        cursor: pointer;
+        overflow: hidden;
+        position: relative;
+        transition: 300ms cubic-bezier(0.83, 0, 0.17, 1);
+      }
+
+      .bubbles > .text {
+        font-weight: 700;
+        color: var(--c2);
+        position: relative;
+        z-index: 1;
+        transition: color 700ms cubic-bezier(0.83, 0, 0.17, 1);
+      }
+
+      .bubbles::before,
+      .bubbles::after {
+        content: "";
+        width: 150%;
+        aspect-ratio: 1/1;
+        scale: 0;
+        transition: 1000ms cubic-bezier(0.76, 0, 0.24, 1);
+        background-color: var(--c2);
+        border-radius: 50%;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        translate: -50% -50%;
+        z-index: 0;
+      }
+
+      .bubbles:hover > .text {
+        color: var(--c1);
+      }
+
+      .bubbles:hover::before,
+      .bubbles:hover::after {
+        scale: 1;
+      }
+
+      .bubbles:active {
+        scale: 0.98;
+        filter: brightness(0.9);
+      }
+    </style>
+  </head>
+  <body
+    class="relative min-h-screen text-slate-100 flex flex-col justify-between items-center p-6 overflow-hidden bg-slate-950"
+  >
+    <!-- FONDO DE PANTALLA INMERSIVO  -->
+    <div class="absolute inset-0 -z-10">
+      <img
+        id="bg-image"
+        src="./Themes/nature1.jpg"
+        alt="Background"
+        class="w-full h-full object-cover filter brightness-50 contrast-125"
+      />
+      <!-- Capa oscura semitransparente para legibilidad -->
+      <div class="absolute inset-0 bg-slate-450/60 backdrop-blur-[2px]"></div>
+    </div>
+
+    <!-- HEADER / TÍTULO E INTERRUPTORES DE MODO -->
+    <header
+      class="w-full max-w-4xl flex flex-col items-center pt-2 relative z-10"
+    >
+      <div class="w-full flex justify-between items-center mb-6">
+        <h1 class="text-sm font-semibold tracking-wide text-slate-300">
+          <button class="bubbles">
+            <span class="text">StudyFocus</span>
+          </button>
+        </h1>
+        <span class="text-xs text-slate-400">ABOUT</span>
+      </div>
+
+      <!-- SELECTOR DE MODOS (SUPERIOR FLOTANTE) -->
+      <div
+        class="hover:scale-x-105 transition-all duration-300 *:transition-all *:duration-300 flex justify-start text-2xl items-center shadow-xl z-10 bg-[#e8e4df] dark:bg-transparent gap-2 p-2 rounded-full"
+      >
+        <button
+          id="btn-work"
+          class="px-10 py-1.5 text-xs font-semibold rounded-full text-white transition-all shadow-sm"
+        >
+          Focus
+          <i class="fi fi-rs-bolt"></i>
+          <span id="session-counter" class="text-xs">0</span>
+        </button>
+        <button
+          id="btn-short-break"
+          class="px-10 py-1.5 text-xs font-semibold rounded-full text-white transition-all shadow-sm"
+        >
+          Short break
+          <i class="fi fi-rs-coffee-time"></i>
+          <span id="short-break-counter" class="text-xs">0</span>
+        </button>
+        <button
+          id="btn-long-break"
+          class="px-10 py-1.5 text-xs font-semibold rounded-full text-white transition-all shadow-sm"
+        >
+          Long break
+          <i class="fi fi-rs-umbrella-beach"></i>
+          <span id="long-break-counter" class="text-xs">0</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- BARRA LATERAL DE HERRAMIENTAS -->
+    <aside
+      class="absolute left-2 top-2/3 -translate-y-1/2 hidden md:flex flex-col gap-4 bg-slate-900/40 backdrop-blur-md p-2.5 rounded-2xl border border-slate-700/30 bg-transparent"
+    >
+      <button
+        id="btn-trophy"
+        class="p-2.5 rounded-xl hover:bg-slate-800/80 text-slate-300 transition group relative"
+        title="Rango actual"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="lucide lucide-trophy preview-icon text-amber-400"
+        >
+          <path d="M10 14.66V17a1 1 0 0 1-1 1 2 2 0 0 0-2 2v2" />
+          <path d="M14 14.66V17a1 1 0 0 0 1 1 2 2 0 0 1 2 2v2" />
+          <path d="M17.916 10H19.5A2.5 2.5 0 0 0 22 7.5V5a1 1 0 0 0-1-1h-3" />
+          <path d="M4 22h16" />
+          <path d="M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1z" />
+          <path d="M6.084 10H4.5A2.5 2.5 0 0 1 2 7.5V5a1 1 0 0 1 1-1h3" />
+        </svg>
+        <!-- Tooltip con el Rango Dinámico -->
+        <span
+          id="user-rank-badge"
+          class="absolute left-14 top-1/2 -translate-y-1/2 hidden group-hover:block bg-slate-900 text-amber-300 text-[10px] font-semibold px-2.5 py-1 rounded-lg border border-amber-500/30 whitespace-nowrap shadow-xl"
+        >
+          🌱 Aprendiz
+        </span>
+      </button>
+
+      <!-- Botón de Racha Actual (Corazón) -->
+      <button
+        class="p-2.5 rounded-xl hover:bg-slate-800/80 text-amber-400 transition flex flex-col items-center justify-center gap-0.5"
+        title="Racha de días"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="22"
+          height="22"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="lucide lucide-heart preview-icon fill-amber-500/20 stroke-amber-400 animate-pulse"
+        >
+          <path
+            d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"
+          />
+        </svg>
+        <span id="streak-counter" class="text-[11px] font-bold text-amber-300"
+          >0</span
+        >
+      </button>
+      <button
+        id="btn-theme-toggle"
+        class="p-2.5 rounded-xl hover:bg-slate-800/80 text-slate-300 transition"
+        title="Temas / Skins"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="lucide lucide-palette preview-icon"
+        >
+          <path
+            d="M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z"
+          />
+          <circle cx="13.5" cy="6.5" r=".5" fill="currentColor" />
+          <circle cx="17.5" cy="10.5" r=".5" fill="currentColor" />
+          <circle cx="6.5" cy="12.5" r=".5" fill="currentColor" />
+          <circle cx="8.5" cy="7.5" r=".5" fill="currentColor" />
+        </svg>
+      </button>
+      <button
+        class="p-2.5 rounded-xl hover:bg-slate-800/80 text-slate-300 transition"
+        title="Ajustes"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="lucide lucide-bolt preview-icon"
+        >
+          <path
+            d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"
+          />
+          <circle cx="12" cy="12" r="4" />
+        </svg>
+      </button>
+    </aside>
+
+    <!-- CENTRO: RELOJ CIRCULAR CON EFECTO NEÓN Y SIN CONTENEDOR PESADO -->
+    <main
+      class="flex flex-col items-center justify-center relative z-10 my-auto"
+    >
+      <div class="relative flex items-center justify-center">
+        <!-- SVG del Círculo con Neón -->
+        <svg
+          class="w-72 h-72 transform -rotate-90 neon-glow"
+          viewBox="0 0 100 100"
+        >
+          <circle
+            cx="50"
+            cy="50"
+            r="42"
+            class="stroke-slate-=800/80"
+            stroke-width="4"
+            fill="transparent"
+          />
+          <circle
+            id="progress-circle"
+            cx="50"
+            cy="50"
+            r="42"
+            class="stroke-purple-500 transition-all duration-1000 ease-linear"
+            stroke-width="4"
+            stroke-linecap="round"
+            fill="transparent"
+            stroke-dasharray="263.89"
+            stroke-dashoffset="0"
+          />
+        </svg>
+
+        <!-- CONTENIDO CENTRAL DEL RELOJ -->
+        <div
+          class="absolute flex flex-col items-center justify-center text-center"
+        >
+          <span
+            id="timer-display"
+            class="text-5xl font-bold tracking-tight text-white drop-shadow-lg"
+            >25:00</span
+          >
+          <div
+            class="flex items-center gap-1.5 mt-2 bg-slate-900/80 px-2.5 py-0.5 rounded-full border border-slate-700/50"
+          >
+            <span
+              class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"
+            ></span>
+            <span
+              id="session-status"
+              class="text-[11px] font-medium text-slate-300"
+              >Focus session</span
+            >
+          </div>
+        </div>
+      </div>
+
+      <!-- FRASE MOTIVACIONAL DINÁMICA -->
+      <p
+        id="quote-display"
+        class="mt-6 text-sm italic font-light text-slate-300 tracking-wide drop-shadow"
+      >
+        "Either you run the day or the day runs you."
+      </p>
+    </main>
+
+    <!-- BARRA INFERIOR DE CONTROLES (Estilo de la Referencia) -->
+    <footer class="w-full max-w-md relative z-10 pb-2">
+      <div
+        class="flex items-center justify-between bg-slate-900/70 backdrop-blur-md px-4 py-3 rounded-2xl border border-slate-700/40 shadow-xl"
+      >
+        <!-- Botón de Música -->
+        <button
+          class="flex items-center gap-2 text-xs font-medium text-slate-300 hover:text-white transition px-2 py-1"
+        >
+          <span>🎵</span> Music
+        </button>
+
+        <!-- Botón de Start Principal -->
+        <button
+          id="btn-start"
+          class="px-8 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm rounded-xl shadow-lg shadow-indigo-600/40 transition-all transform active:scale-95"
+        >
+          Start
+        </button>
+
+        <!-- Opciones extra de tareas / cofres -->
+        <!-- Opciones extra de tareas / cofres (en el footer) -->
+        <div class="flex items-center gap-3 text-xs text-slate-300 relative">
+          <!-- Botón del Cofre -->
+          <button
+            id="btn-chest"
+            class="hover:text-white transition relative p-1 group flex items-center"
+            title="Cofre de recompensas"
+          >
+            <!-- Contenedor del icono con ID para cambiarlo dinámicamente -->
+            <span
+              id="chest-icon-container"
+              class="text-base flex items-center justify-center"
+            >
+              <i class="fi fi-rs-treasure-chest"></i>
+            </span>
+
+            <!-- Indicador de cofre listo (punto brillante) -->
+            <span
+              id="chest-dot"
+              class="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-400 animate-ping hidden"
+            ></span>
+          </button>
+
+          <!-- BOTÓN DE TAREAS Y MODAL FLOTANTE -->
+          <div class="relative inline-block text-left">
+            <!-- Botón Tasks existente -->
+            <button
+              id="btn-tasks-toggle"
+              class="flex items-center gap-1.5 hover:text-white text-slate-300 transition py-1 px-2 rounded-lg hover:bg-slate-800/50"
+              title="Gestionar tareas del día"
+            >
+              <span>📋</span> <span class="font-medium">Tasks</span>
+              <span
+                id="pomodoro-count"
+                class="text-[10px] bg-slate-800 px-2 py-0.5 rounded-full text-indigo-400 font-bold transition-all duration-300 inline-block"
+                >0/4</span
+              >
+            </button>
+
+            <!-- PANAL / MODAL DE TAREAS (Oculto por defecto con 'hidden') -->
+            <div
+              id="tasks-modal"
+              class="hidden absolute bottom-12 left-0 w-80 bg-slate-900/95 backdrop-blur-xl border border-slate-700/50 p-4 rounded-2xl shadow-2xl z-50 animate-in fade-in zoom-in duration-200"
+            >
+              <div class="flex items-center justify-between mb-3">
+                <h3
+                  class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5"
+                >
+                  <span>⚡</span> Tareas de Hoy
+                </h3>
+                <span
+                  id="tasks-completed-badge"
+                  class="text-[10px] text-slate-400 font-semibold bg-slate-800 px-2 py-0.5 rounded-md"
+                >
+                  0 hechas
+                </span>
+              </div>
+
+              <!-- Formulario para agregar nueva tarea -->
+              <form id="task-form" class="flex gap-2 mb-3">
+                <input
+                  type="text"
+                  id="task-input"
+                  placeholder="¿En qué vas a enfocarte?..."
+                  class="flex-1 bg-slate-950 border border-slate-800 focus:border-indigo-500 text-xs text-white px-3 py-2 rounded-xl outline-none transition"
+                  required
+                />
+                <button
+                  type="submit"
+                  class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-3 py-2 rounded-xl font-semibold transition active:scale-95 flex items-center justify-center"
+                >
+                  +
+                </button>
+              </form>
+
+              <!-- Lista desplegable de tareas -->
+              <ul
+                id="tasks-list"
+                class="space-y-2 max-h-48 overflow-y-auto pr-1"
+              >
+                <!-- Se llenará dinámicamente con JS -->
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </footer>
+
+    <!--modal temas -->
+
+    <!-- MENÚ FLOTANTE DE TEMAS (Oculto por defecto con 'hidden') -->
+    <div
+      id="theme-menu"
+      class="hidden absolute left-16 top-2/3 -translate-y-1/2 bg-slate-900/90 backdrop-blur-xl border border-slate-700/50 p-3 rounded-2xl shadow-2xl z-50 flex flex-col gap-2.5 w-48 animate-in fade-in zoom-in duration-200"
+    >
+      <div
+        class="text-[11px] font-semibold text-slate-400 px-1 uppercase tracking-wider"
+      >
+        Elige un tema
+      </div>
+
+      <!-- Opción 1: Nature -->
+      <button
+        onclick="
+          setTheme('nature');
+          toggleThemeMenu();
+        "
+        class="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-800/80 transition group text-left w-full"
+      >
+        <div
+          class="w-8 h-8 rounded-lg overflow-hidden bg-emerald-950 border border-emerald-500/30 flex-shrink-0"
+        >
+          <img
+            src="./Themes/nature1.jpg"
+            class="w-full h-full object-cover group-hover:scale-110 transition duration-300"
+            alt="Nature"
+          />
+        </div>
+        <div class="flex flex-col">
+          <span class="text-xs font-medium text-white">Nature 🌲</span>
+          <span class="text-[10px] text-slate-400">Bosque místico</span>
+        </div>
+      </button>
+
+      <!-- Opción 2: Sunset -->
+      <button
+        onclick="
+          setTheme('sunset');
+          toggleThemeMenu();
+        "
+        class="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-800/80 transition group text-left w-full"
+      >
+        <div
+          class="w-8 h-8 rounded-lg overflow-hidden bg-amber-950 border border-amber-500/30 flex-shrink-0"
+        >
+          <img
+            src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=100&q=80"
+            class="w-full h-full object-cover group-hover:scale-110 transition duration-300"
+            alt="Sunset"
+          />
+        </div>
+        <div class="flex flex-col">
+          <span class="text-xs font-medium text-white">Sunset 🌅</span>
+          <span class="text-[10px] text-slate-400">Atardecer cálido</span>
+        </div>
+      </button>
+
+      <!-- Opción 3: Minimal (Oscuro sólido) -->
+      <button
+        onclick="
+          setTheme('minimal');
+          toggleThemeMenu();
+        "
+        class="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-800/80 transition group text-left w-full"
+      >
+        <div
+          class="w-8 h-8 rounded-lg overflow-hidden bg-slate-900 border border-purple-500/30 flex-shrink-0 flex items-center justify-center"
+        >
+          <div class="w-4 h-4 rounded-full bg-purple-600"></div>
+        </div>
+        <div class="flex flex-col">
+          <span class="text-xs font-medium text-white">Minimal 🌙</span>
+          <span class="text-[10px] text-slate-400">Neón oscuro</span>
+        </div>
+      </button>
+    </div>
+
+    <!-- MODAL DE RECOMPENSA DEL COFRE (Loot Box) -->
+    <div
+      id="chest-modal"
+      class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200"
+    >
+      <div
+        class="bg-slate-900 border border-amber-500/30 p-6 rounded-2xl shadow-2xl max-w-sm w-full mx-4 text-center relative overflow-hidden"
+      >
+        <!-- Efecto de brillo de fondo -->
+        <div
+          class="absolute -top-12 -left-12 w-28 h-28 bg-amber-500/10 rounded-full blur-2xl"
+        ></div>
+
+        <div class="text-4xl mb-3 animate-bounce">🏆</div>
+        <h3 class="text-base font-bold text-white mb-1">
+          ¡Cofre de Recompensa Abierto!
+        </h3>
+        <p class="text-xs text-slate-400 mb-4">
+          Has desbloqueado una bonificación por tu esfuerzo:
+        </p>
+
+        <!-- Caja de texto donde aparecerá el premio aleatorio -->
+        <div
+          id="chest-reward-text"
+          class="bg-slate-950/60 border border-slate-800 p-3.5 rounded-xl text-xs text-amber-300 font-medium italic mb-5 leading-relaxed"
+        >
+          "Premio..."
+        </div>
+
+        <button
+          id="btn-close-chest"
+          class="w-full py-2 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-slate-950 font-bold text-xs rounded-xl shadow-lg shadow-amber-600/20 transition-all transform active:scale-95"
+        >
+          ¡Genial, a seguir codeando! ⚡
+        </button>
+      </div>
+    </div>
+
+    <!-- Script de lógica -->
+    <script src="app.js"></script>
+  </body>
+</html>
